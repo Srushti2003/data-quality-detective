@@ -1,0 +1,13 @@
+
+pandas
+numpy
+pyarrow
+psycopg2-binary
+SQLAlchemy
+python-dotenv
+scikit-learn
+scipy
+pytest
+reportlab
+streamlit
+plotly
