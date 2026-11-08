@@ -174,7 +174,7 @@ Data Quality Detective/
 
 ```bash
 git clone https://github.com/Srushti2003/data-quality-detective.git
-cd "Data Quality Detective"
+cd data-quality-detective
 ```
 
 ### Create a virtual environment
@@ -308,3 +308,4 @@ Synthetic evaluation results should not be interpreted as proof of equivalent pe
 **Project:** Data Quality Detective â€” An AI-Powered Data Reliability Platform
 
 **Focus Areas:** Data Engineering | Data Quality | Statistical Analysis | Anomaly Detection | Data Drift | Root-Cause Analysis | PostgreSQL | Machine Learning
+
