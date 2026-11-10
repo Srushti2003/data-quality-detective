@@ -81,6 +81,15 @@ def test_engine():
         schema_sql = SCHEMA_FILE.read_text(encoding="utf-8")
 
         with engine.begin() as connection:
+            # Recreate tables whose definitions may have changed.
+            # This affects only the dedicated integration test database.
+            connection.exec_driver_sql(
+                "DROP TABLE IF EXISTS injected_incidents"
+            )
+            connection.exec_driver_sql(
+                "DROP TABLE IF EXISTS taxi_trips"
+            )
+
             for statement in schema_sql.split(";"):
                 statement = statement.strip()
 

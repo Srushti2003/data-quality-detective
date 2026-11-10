@@ -25,3 +25,5 @@ NAB/
 
 # Generated analysis reports
 reports/
+# Database backups
+backups/

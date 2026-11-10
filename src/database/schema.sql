@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS data_batches (
 CREATE TABLE IF NOT EXISTS taxi_trips (
     trip_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     batch_id BIGINT NOT NULL REFERENCES data_batches(batch_id),
+    source_row_number BIGINT,
 
     vendor_id INTEGER,
     pickup_datetime TIMESTAMP,
@@ -35,7 +36,24 @@ CREATE TABLE IF NOT EXISTS taxi_trips (
     improvement_surcharge DOUBLE PRECISION,
     total_amount DOUBLE PRECISION,
     congestion_surcharge DOUBLE PRECISION,
-    airport_fee DOUBLE PRECISION
+    airport_fee DOUBLE PRECISION,
+    cbd_congestion_fee DOUBLE PRECISION,
+
+    CONSTRAINT uq_taxi_batch_source_row
+        UNIQUE (batch_id, source_row_number)
+);
+
+
+CREATE TABLE IF NOT EXISTS injected_incidents (
+    incident_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    batch_id BIGINT NOT NULL REFERENCES data_batches(batch_id),
+    trip_id BIGINT NOT NULL REFERENCES taxi_trips(trip_id),
+    incident_type VARCHAR(150) NOT NULL,
+    column_name VARCHAR(100),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_injected_incident
+        UNIQUE (batch_id, trip_id, incident_type)
 );
 
 CREATE TABLE IF NOT EXISTS quality_results (

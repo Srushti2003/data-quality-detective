@@ -184,7 +184,8 @@ def test_simulate_incidents_saves_without_dataframe_index(
         save_calls.append({
             "path": path,
             "index": index,
-            "rows": len(self)
+            "rows": len(self),
+            "data": self.copy()
         })
 
     monkeypatch.setattr(
@@ -206,10 +207,42 @@ def test_simulate_incidents_saves_without_dataframe_index(
         output=output
     )
 
-    assert len(save_calls) == 1
+    labels_output = output.with_name(
+        f"{output.stem}_labels.parquet"
+    )
+
+    assert len(save_calls) == 2
+
     assert save_calls[0]["path"] == output
     assert save_calls[0]["index"] is False
     assert save_calls[0]["rows"] == 700
+
+    assert save_calls[1]["path"] == labels_output
+    assert save_calls[1]["index"] is False
+    assert save_calls[1]["rows"] == 700
+
+    labels = save_calls[1]["data"]
+
+    assert set(labels["incident_type"].unique()) == {
+        "negative_fare_amount",
+        "negative_trip_distance",
+        "zero_passenger_count",
+        "missing_pickup_datetime",
+        "negative_total_amount",
+        "duplicate_trip",
+    }
+
+    assert labels["incident_type"].value_counts().to_dict() == {
+        "negative_fare_amount": 200,
+        "negative_trip_distance": 100,
+        "zero_passenger_count": 100,
+        "missing_pickup_datetime": 100,
+        "negative_total_amount": 100,
+        "duplicate_trip": 100,
+    }
+
+    assert labels["source_row_number"].min() == 0
+    assert labels["source_row_number"].max() == 699
 
 
 def test_simulate_incidents_propagates_read_error(

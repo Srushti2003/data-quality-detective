@@ -5,6 +5,7 @@ from sqlalchemy import inspect
 EXPECTED_TABLES = {
     "data_batches",
     "taxi_trips",
+    "injected_incidents",
     "quality_results",
     "drift_results",
 }
@@ -34,12 +35,22 @@ def test_required_columns_exist(test_engine):
         "taxi_trips": {
             "trip_id",
             "batch_id",
+            "source_row_number",
             "vendor_id",
             "pickup_datetime",
             "dropoff_datetime",
             "fare_amount",
             "trip_distance",
             "total_amount",
+            "cbd_congestion_fee",
+        },
+        "injected_incidents": {
+            "incident_id",
+            "batch_id",
+            "trip_id",
+            "incident_type",
+            "column_name",
+            "created_at",
         },
         "quality_results": {
             "result_id",
@@ -81,6 +92,7 @@ def test_primary_keys_are_configured(test_engine):
     expected_primary_keys = {
         "data_batches": "batch_id",
         "taxi_trips": "trip_id",
+        "injected_incidents": "incident_id",
         "quality_results": "result_id",
         "drift_results": "drift_id",
     }
@@ -97,13 +109,19 @@ def test_foreign_keys_are_configured(test_engine):
     inspector = inspect(test_engine)
 
     expected_foreign_keys = {
-        "taxi_trips": ("batch_id", "data_batches", "batch_id"),
-        "quality_results": ("batch_id", "data_batches", "batch_id"),
-        "drift_results": (
-            "current_batch_id",
-            "data_batches",
-            "batch_id",
-        ),
+        "taxi_trips": {
+            ("batch_id", "data_batches", "batch_id"),
+        },
+        "injected_incidents": {
+            ("batch_id", "data_batches", "batch_id"),
+            ("trip_id", "taxi_trips", "trip_id"),
+        },
+        "quality_results": {
+            ("batch_id", "data_batches", "batch_id"),
+        },
+        "drift_results": {
+            ("current_batch_id", "data_batches", "batch_id"),
+        },
     }
 
     for table_name, expected in expected_foreign_keys.items():
@@ -118,7 +136,33 @@ def test_foreign_keys_are_configured(test_engine):
             for fk in foreign_keys
         }
 
-        assert expected in actual_relationships, (
-            f"Expected foreign key {expected} "
-            f"not found in {table_name}"
+        assert expected.issubset(actual_relationships), (
+            f"Missing foreign keys in {table_name}: "
+            f"{expected - actual_relationships}"
+        )
+
+
+def test_unique_constraints_are_configured(test_engine):
+    inspector = inspect(test_engine)
+
+    expected_constraints = {
+        "taxi_trips": {
+            ("batch_id", "source_row_number"),
+        },
+        "injected_incidents": {
+            ("batch_id", "trip_id", "incident_type"),
+        },
+    }
+
+    for table_name, expected in expected_constraints.items():
+        constraints = inspector.get_unique_constraints(table_name)
+
+        actual = {
+            tuple(constraint["column_names"])
+            for constraint in constraints
+        }
+
+        assert expected.issubset(actual), (
+            f"Missing unique constraints in {table_name}: "
+            f"{expected - actual}"
         )
