@@ -7,16 +7,25 @@ def get_advanced_rules(df):
         df["dropoff_datetime"] - df["pickup_datetime"]
     ).dt.total_seconds() / 60
 
-    fare_components = (
-        df["fare_amount"].fillna(0)
-        + df["extra"].fillna(0)
-        + df["mta_tax"].fillna(0)
-        + df["tip_amount"].fillna(0)
-        + df["tolls_amount"].fillna(0)
-        + df["improvement_surcharge"].fillna(0)
-        + df["congestion_surcharge"].fillna(0)
-        + df["airport_fee"].fillna(0)
-    )
+    fare_component_columns = [
+        "fare_amount",
+        "extra",
+        "mta_tax",
+        "tip_amount",
+        "tolls_amount",
+        "improvement_surcharge",
+        "congestion_surcharge",
+        "airport_fee",
+        "cbd_congestion_fee",
+    ]
+
+    fare_components_available = df[
+        fare_component_columns
+    ].notna().all(axis=1)
+
+    fare_components = df[
+        fare_component_columns
+    ].sum(axis=1)
 
     return [
         {
@@ -28,6 +37,30 @@ def get_advanced_rules(df):
             ),
             "description": "Trip distance is zero.",
         },
+        {
+            "name": "extreme_trip_distance",
+            "severity": "high",
+            "condition": (
+                df["trip_distance"].notna()
+                & (df["trip_distance"] > 100)
+            ),
+            "description": (
+                "Trip distance exceeds 100 miles."
+            ),
+        },
+
+        {
+            "name": "excessive_passenger_count",
+            "severity": "medium",
+            "condition": (
+                df["passenger_count"].notna()
+                & (df["passenger_count"] > 6)
+            ),
+            "description": (
+                "Passenger count exceeds 6."
+            ),
+        },
+
         {
             "name": "extremely_long_trip",
             "severity": "high",
@@ -55,15 +88,15 @@ def get_advanced_rules(df):
             "severity": "medium",
             "condition": (
                 df["total_amount"].notna()
-                & df["fare_amount"].notna()
+                & fare_components_available
                 & (
                     (df["total_amount"] - fare_components).abs()
-                    > 0.05
+                    > 0.05 + 1e-9
                 )
             ),
             "description": (
                 "Total amount differs from the sum of "
-                "available fare components by more than $0.05."
+                "fare components by more than $0.05."
             ),
         },
         {

@@ -26,7 +26,7 @@ def make_engine(batch=None):
 
 
 def make_valid_dataframe():
-    """Return representative taxi records for all eight quality rules."""
+    """Return representative taxi records for all quality rules."""
     return pd.DataFrame({
         "pickup_datetime": pd.to_datetime([
             "2025-01-01 10:00:00",
@@ -40,10 +40,17 @@ def make_valid_dataframe():
         ]),
         "passenger_count": [1, 0, 2],
         "trip_distance": [2.5, -10, 3.0],
-        "fare_amount": [15.0, -50, None],
-        "total_amount": [18.0, -100, 20.0],
+        "fare_amount": [15.0, -50.0, None],
+        "extra": [1.0, -30.0, 0.0],
+        "mta_tax": [0.5, -5.0, 0.0],
+        "tip_amount": [1.0, -10.0, 0.0],
+        "tolls_amount": [0.0, -2.0, 0.0],
+        "improvement_surcharge": [0.5, -1.0, 0.0],
+        "total_amount": [18.0, -100.0, 20.0],
+        "congestion_surcharge": [0.0, -1.0, 0.0],
+        "airport_fee": [0.0, -1.0, 0.0],
+        "cbd_congestion_fee": [0.0, 0.0, 0.0],
     })
-
 
 # ---------------------------------------------------------
 # DATABASE CONFIGURATION
@@ -245,22 +252,18 @@ def test_main_executes_rules_and_saves_results(
     # Verify batch lookup.
     read_connection.execute.assert_called_once()
 
-    # One DELETE + eight INSERT statements.
-    assert transaction_connection.execute.call_count == 9
 
-    delete_call = transaction_connection.execute.call_args_list[0]
+    # One DELETE + sixteen INSERT statements.
+    assert transaction_connection.execute.call_count == 17
 
-    delete_params = delete_call.args[1]
-
-    assert delete_params["batch_id"] == 77
-    assert len(delete_params["rule_names"]) == 8
-
-    # Verify all eight results were inserted.
+    # Capture all sixteen INSERT statements (skip the DELETE).
     insert_calls = (
         transaction_connection.execute.call_args_list[1:]
     )
 
-    assert len(insert_calls) == 8
+    assert len(insert_calls) == 16
+
+    inserted_rule_names = set()
 
     for call in insert_calls:
         params = call.args[1]
@@ -269,16 +272,45 @@ def test_main_executes_rules_and_saves_results(
         assert params["total_records"] == 3
         assert 0 <= params["failure_rate"] <= 100
 
-        details = json.loads(params["details"])
+        inserted_rule_names.add(params["rule_name"])
 
+        details = json.loads(params["details"])
         assert "description" in details
+
+    expected_advanced_rules = {
+        "zero_trip_distance",
+        "extreme_trip_distance",
+        "excessive_passenger_count",
+        "extremely_long_trip",
+        "extremely_short_trip",
+        "unusually_high_fare",
+        "invalid_fare_relationship",
+        "future_pickup_datetime",
+    }
+
+    expected_base_rules = {
+        rule["name"] for rule in validator.RULES
+    }
+
+    assert inserted_rule_names == (
+        expected_base_rules | expected_advanced_rules
+    )
+
+    delete_call = transaction_connection.execute.call_args_list[0]
+
+    delete_params = delete_call.args[1]
+
+    assert delete_params["batch_id"] == 77
+    assert len(delete_params["rule_names"]) == 16
+
+
 
     # Verify report output.
     output = capsys.readouterr().out
 
     assert "Quality report for batch 77" in output
     assert "Records checked: 3" in output
-    assert "Rules executed: 8" in output
+    assert "Rules executed: 16" in output
     assert "Results saved to quality_results." in output
 
     engine.dispose.assert_called_once()

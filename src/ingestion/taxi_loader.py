@@ -36,6 +36,7 @@ COLUMN_MAP = {
     "congestion_surcharge": "congestion_surcharge",
     "Airport_fee": "airport_fee",
     "airport_fee": "airport_fee",
+    "cbd_congestion_fee": "cbd_congestion_fee",
 }
 
 
@@ -113,6 +114,7 @@ def main():
         "total_amount",
         "congestion_surcharge",
         "airport_fee",
+        "cbd_congestion_fee",
     ]
 
     available_columns = [

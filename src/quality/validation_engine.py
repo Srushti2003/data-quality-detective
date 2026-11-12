@@ -6,6 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+from src.quality.quality_rules import get_advanced_rules
 
 load_dotenv()
 
@@ -132,14 +133,22 @@ def main():
             df = pd.read_sql(
                 text("""
                     SELECT
-                        pickup_datetime,
-                        dropoff_datetime,
-                        passenger_count,
-                        trip_distance,
-                        fare_amount,
-                        total_amount
-                    FROM taxi_trips
-                    WHERE batch_id = :batch_id
+                    pickup_datetime,
+                    dropoff_datetime,
+                    passenger_count,
+                    trip_distance,
+                    fare_amount,
+                    extra,
+                    mta_tax,
+                    tip_amount,
+                    tolls_amount,
+                    improvement_surcharge,
+                    total_amount,
+                    congestion_surcharge,
+                    airport_fee,
+                    cbd_congestion_fee
+                FROM taxi_trips
+                WHERE batch_id = :batch_id
                 """),
                 connection,
                 params={"batch_id": BATCH_ID},
@@ -151,11 +160,28 @@ def main():
             )
 
         results = []
+        total_records = len(df)
 
-        for rule in RULES:
-            failed_mask = rule["condition"](df)
-            failed_records = int(failed_mask.sum())
-            total_records = len(df)
+        # Existing rules use callable conditions.
+        rules_to_execute = [
+            {
+                **rule,
+                "failed_mask": rule["condition"](df),
+            }
+            for rule in RULES
+        ]
+
+        # Advanced rules return precomputed Boolean Series.
+        rules_to_execute.extend(
+            {
+                **rule,
+                "failed_mask": rule["condition"],
+            }
+            for rule in get_advanced_rules(df)
+        )
+
+        for rule in rules_to_execute:
+            failed_records = int(rule["failed_mask"].sum())
 
             results.append({
                 "batch_id": BATCH_ID,

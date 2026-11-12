@@ -12,6 +12,7 @@ def valid_dataframe():
         "pickup_datetime": [pd.Timestamp("2025-01-01 10:00:00")],
         "dropoff_datetime": [pd.Timestamp("2025-01-01 10:30:00")],
         "trip_distance": [5.0],
+        "passenger_count": [1],
         "fare_amount": [20.0],
         "extra": [1.0],
         "mta_tax": [0.5],
@@ -20,6 +21,7 @@ def valid_dataframe():
         "improvement_surcharge": [1.0],
         "congestion_surcharge": [2.5],
         "airport_fee": [0.0],
+        "cbd_congestion_fee": [0.0],
         "total_amount": [28.0],
     })
 
@@ -153,6 +155,17 @@ def test_fare_difference_within_tolerance_passes(valid_dataframe):
 
     assert result.iloc[0] == False
 
+def test_fare_difference_of_exactly_five_cents_passes(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "total_amount"] = 28.05
+
+    result = get_rule_condition(
+        valid_dataframe, "invalid_fare_relationship"
+    )
+
+    assert result.iloc[0] == False
+
 
 def test_future_pickup_detected(valid_dataframe):
     valid_dataframe.loc[0, "pickup_datetime"] = (
@@ -188,7 +201,7 @@ def test_missing_pickup_is_not_flagged_as_future(valid_dataframe):
     assert result.iloc[0] == False
 
 
-def test_all_six_advanced_rules_are_registered(valid_dataframe):
+def test_all_eight_advanced_rules_are_registered(valid_dataframe):
     rules = get_advanced_rules(valid_dataframe)
 
     rule_names = {rule["name"] for rule in rules}
@@ -200,4 +213,107 @@ def test_all_six_advanced_rules_are_registered(valid_dataframe):
         "unusually_high_fare",
         "invalid_fare_relationship",
         "future_pickup_datetime",
+        "extreme_trip_distance",
+        "excessive_passenger_count",
     }
+
+
+def test_extreme_trip_distance_detected(valid_dataframe):
+    valid_dataframe.loc[0, "trip_distance"] = 150
+
+    result = get_rule_condition(
+        valid_dataframe, "extreme_trip_distance"
+    )
+
+    assert result.iloc[0] == True
+
+
+def test_trip_distance_of_exactly_100_is_not_flagged(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "trip_distance"] = 100
+
+    result = get_rule_condition(
+        valid_dataframe, "extreme_trip_distance"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_missing_trip_distance_is_not_flagged(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "trip_distance"] = float("nan")
+
+    result = get_rule_condition(
+        valid_dataframe, "extreme_trip_distance"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_excessive_passenger_count_detected(valid_dataframe):
+    valid_dataframe["passenger_count"] = [7]
+
+    result = get_rule_condition(
+        valid_dataframe, "excessive_passenger_count"
+    )
+
+    assert result.iloc[0] == True
+
+
+def test_passenger_count_of_exactly_six_passes(valid_dataframe):
+    valid_dataframe["passenger_count"] = [6]
+
+    result = get_rule_condition(
+        valid_dataframe, "excessive_passenger_count"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_missing_passenger_count_is_not_flagged(valid_dataframe):
+    valid_dataframe["passenger_count"] = [float("nan")]
+
+    result = get_rule_condition(
+        valid_dataframe, "excessive_passenger_count"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_nonzero_cbd_congestion_fee_is_included(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "cbd_congestion_fee"] = 1.5
+    valid_dataframe.loc[0, "total_amount"] = 29.5
+
+    result = get_rule_condition(
+        valid_dataframe, "invalid_fare_relationship"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_missing_cbd_congestion_fee_skips_reconciliation(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "cbd_congestion_fee"] = float("nan")
+
+    result = get_rule_condition(
+        valid_dataframe, "invalid_fare_relationship"
+    )
+
+    assert result.iloc[0] == False
+
+
+def test_missing_other_fare_component_skips_reconciliation(
+    valid_dataframe,
+):
+    valid_dataframe.loc[0, "extra"] = float("nan")
+
+    result = get_rule_condition(
+        valid_dataframe, "invalid_fare_relationship"
+    )
+
+    assert result.iloc[0] == False
