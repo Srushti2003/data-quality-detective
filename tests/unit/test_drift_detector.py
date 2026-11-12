@@ -249,7 +249,15 @@ def test_js_returns_nan_when_one_distribution_is_empty():
 
 
 def test_normalize_categories_handles_numeric_formats():
-    series = pd.Series([1, 1.0, "2", " card ", None])
+    series = pd.Series([
+        1,
+        1.0,
+        "2",
+        " card ",
+        None,
+        12.75,
+        "3.5",
+    ])
 
     result = normalize_categories(series)
 
@@ -259,6 +267,8 @@ def test_normalize_categories_handles_numeric_formats():
         "2",
         "card",
         "MISSING",
+        "12.75",
+        "3.5",
     ]
 
 
@@ -382,5 +392,20 @@ def test_save_results_returns_for_empty_results():
     engine = MagicMock()
 
     save_results(engine, [])
+
+    engine.begin.assert_not_called()
+
+
+def test_save_results_rejects_missing_metadata():
+    engine = MagicMock()
+
+    result = create_drift_result()
+    result["reference_source"] = None
+
+    with pytest.raises(
+        ValueError,
+        match="Missing detection run metadata",
+    ):
+        save_results(engine, [result])
 
     engine.begin.assert_not_called()

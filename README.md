@@ -1,4 +1,4 @@
-﻿# Data Quality Detective â€” An AI-Powered Data Reliability Platform
+# Data Quality Detective â€” An AI-Powered Data Reliability Platform
 
 An end-to-end data reliability platform designed to detect, evaluate, investigate, and report data-quality issues and distribution shifts in analytical datasets.
 
@@ -105,62 +105,61 @@ SQLAlchemy provides database connectivity.
 
 ```text
 Data Quality Detective/
-â”‚
-â”œâ”€â”€ .github/
-â”‚   â””â”€â”€ workflows/
-â”‚       â””â”€â”€ tests.yml
-â”‚
-â”œâ”€â”€ dashboard/
-â”‚   â””â”€â”€ app.py
-â”‚
-â”œâ”€â”€ scripts/
-â”‚   â””â”€â”€ inspect_taxi_schema.py
-â”‚
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ database/
-â”‚   â”‚   â””â”€â”€ schema.sql
-â”‚   â”‚
-â”‚   â”œâ”€â”€ ingestion/
-â”‚   â”‚   â”œâ”€â”€ taxi_loader.py
-â”‚   â”‚   â”œâ”€â”€ monthly_loader.py
-â”‚   â”‚   â””â”€â”€ incident_loader.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ quality/
-â”‚   â”‚   â”œâ”€â”€ quality_rules.py
-â”‚   â”‚   â”œâ”€â”€ validation_engine.py
-â”‚   â”‚   â”œâ”€â”€ incident_simulator.py
-â”‚   â”‚   â””â”€â”€ incident_validator.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ profiling/
-â”‚   â”‚   â””â”€â”€ statistical_profiler.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ outlier_detection/
-â”‚   â”‚   â”œâ”€â”€ iqr_detector.py
-â”‚   â”‚   â”œâ”€â”€ zscore_detector.py
-â”‚   â”‚   â”œâ”€â”€ modified_zscore_detector.py
-â”‚   â”‚   â””â”€â”€ isolation_forest_detector.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ drift/
-â”‚   â”‚   â””â”€â”€ drift_detector.py
-â”‚   â”‚
-â”‚   â”œâ”€â”€ evaluation/
-â”‚   â”‚   â”œâ”€â”€ anomaly_evaluator.py
-â”‚   â”‚   â””â”€â”€ incident_evaluator.py
-â”‚   â”‚
-â”‚   â””â”€â”€ root_cause/
-â”‚       â”œâ”€â”€ rca_engine.py
-â”‚       â”œâ”€â”€ report_generator.py
-â”‚       â””â”€â”€ pdf_report_generator.py
-â”‚
-â”œâ”€â”€ tests/
-â”‚   â”œâ”€â”€ unit/
-â”‚   â”œâ”€â”€ integration/
-â”‚   â””â”€â”€ evaluation/
-â”‚
-â”œâ”€â”€ requirements.txt
-â”œâ”€â”€ pytest.ini
-â””â”€â”€ README.md
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
+├── dashboard/
+│   └── app.py
+│
+├── notebooks/
+│   └── 01_dataset_exploration.ipynb
+│
+├── scripts/
+│   ├── apply_live_incident_migration.py
+│   ├── backup_live_database.py
+│   ├── inspect_taxi_schema.py
+│   └── ... (database and notebook utilities)
+│
+├── src/
+│   ├── database/
+│   │   └── connection.py
+│   ├── drift/
+│   │   └── drift_detector.py
+│   ├── evaluation/
+│   │   ├── anomaly_evaluator.py
+│   │   └── incident_evaluator.py
+│   ├── ingestion/
+│   │   ├── taxi_loader.py
+│   │   ├── monthly_loader.py
+│   │   └── incident_loader.py
+│   ├── outlier_detection/
+│   │   ├── iqr_detector.py
+│   │   ├── zscore_detector.py
+│   │   ├── modified_zscore_detector.py
+│   │   └── isolation_forest_detector.py
+│   ├── profiling/
+│   │   └── statistical_profiler.py
+│   ├── quality/
+│   │   ├── quality_rules.py
+│   │   ├── validation_engine.py
+│   │   ├── incident_simulator.py
+│   │   └── incident_validator.py
+│   └── root_cause/
+│       ├── rca_engine.py
+│       ├── report_generator.py
+│       └── pdf_report_generator.py
+│
+├── tests/
+│   ├── unit/
+│   └── integration/
+│
+├── requirements.txt
+├── pytest.ini
+└── README.md
 ```
+
+**Note:** Dataset files, database backups, generated reports, and local environment files are excluded from version control.
 
 ## 5. Installation and Setup
 
@@ -232,7 +231,27 @@ TEST_DB_PASSWORD=your_postgres_password
 
 ### Configure the datasets
 
-Obtain the required NYC Yellow Taxi Parquet datasets separately and place them in the expected local data directories.
+Obtain the required NYC Yellow Taxi Parquet datasets separately.
+
+Place the raw monthly taxi datasets in:
+
+```text
+data/raw/nyc_taxi/
+```
+
+The monthly ingestion pipeline expects:
+
+- `yellow_tripdata_2025-02.parquet`
+- `yellow_tripdata_2025-03.parquet`
+
+The incident validation pipeline uses the following processed files:
+
+```text
+data/processed/nyc_taxi_corrupted.parquet
+data/processed/nyc_taxi_corrupted_labels.parquet
+```
+
+These processed files must be generated or prepared before running the corresponding incident validation workflow.
 
 Dataset files and generated reports are excluded from Git to keep the repository lightweight and avoid committing raw or generated data.
 
@@ -264,8 +283,8 @@ python -m pytest --cov=src --cov-report=term-missing
 
 | Metric | Result |
 |---|---:|
-| Total automated tests | 192 |
-| Passed | 192 |
+| Total automated tests | 227 |
+| Passed | 227 |
 | Failed | 0 |
 | Last measured overall code coverage | 98% |
 
@@ -308,4 +327,3 @@ Synthetic evaluation results should not be interpreted as proof of equivalent pe
 **Project:** Data Quality Detective â€” An AI-Powered Data Reliability Platform
 
 **Focus Areas:** Data Engineering | Data Quality | Statistical Analysis | Anomaly Detection | Data Drift | Root-Cause Analysis | PostgreSQL | Machine Learning
-

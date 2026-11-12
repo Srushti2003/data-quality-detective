@@ -27,3 +27,18 @@ NAB/
 reports/
 # Database backups
 backups/
+
+# Local working documents and SQL investigation notes
+Commands.docx
+SQL.docx
+tests/*.sql
+
+# Local database administration utilities
+scripts/apply_live_incident_migration.py
+scripts/backup_live_database.py
+scripts/final_live_migration_preflight.py
+scripts/finish_incident_migration_test.py
+scripts/inspect_live_schema.py
+scripts/inspect_migration_constraints.py
+scripts/preflight_incident_migration.py
+scripts/verify_live_incident_migration.py

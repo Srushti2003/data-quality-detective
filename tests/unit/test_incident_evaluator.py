@@ -334,3 +334,50 @@ def test_main_disposes_engine_when_database_read_fails():
             evaluator.main()
 
     fake_engine.dispose.assert_called_once()
+
+# --------------------------------------------------
+# get_engine() tests
+# --------------------------------------------------
+
+def test_get_engine_uses_default_port(monkeypatch):
+    monkeypatch.setenv("DB_USER", "test_user")
+    monkeypatch.setenv("DB_PASSWORD", "test_password")
+    monkeypatch.setenv("DB_HOST", "localhost")
+    monkeypatch.setenv("DB_NAME", "test_db")
+    monkeypatch.delenv("DB_PORT", raising=False)
+
+    with patch.object(evaluator, "create_engine") as mock_create_engine:
+        evaluator.get_engine()
+
+    url = mock_create_engine.call_args.args[0]
+
+    assert url.drivername == "postgresql+psycopg2"
+    assert url.username == "test_user"
+    assert url.password == "test_password"
+    assert url.host == "localhost"
+    assert url.port == 5432
+    assert url.database == "test_db"
+
+    mock_create_engine.assert_called_once_with(
+        url,
+        pool_pre_ping=True
+    )
+
+
+def test_get_engine_uses_custom_port(monkeypatch):
+    monkeypatch.setenv("DB_USER", "test_user")
+    monkeypatch.setenv("DB_PASSWORD", "test_password")
+    monkeypatch.setenv("DB_HOST", "localhost")
+    monkeypatch.setenv("DB_NAME", "test_db")
+    monkeypatch.setenv("DB_PORT", "5433")
+
+    with patch.object(evaluator, "create_engine") as mock_create_engine:
+        evaluator.get_engine()
+
+    url = mock_create_engine.call_args.args[0]
+
+    assert url.port == 5433
+    mock_create_engine.assert_called_once_with(
+        url,
+        pool_pre_ping=True
+    )
